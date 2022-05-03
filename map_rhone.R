@@ -27,9 +27,18 @@ updateTMJA <- function() {
   TMJA['Nb_PL_T3'] <- round(TMJA['Nb_PL_T3'], 0)
   return(TMJA)
 }
+
 TMJA <- updateTMJA()
-sapply(TMJA, mode)
+sapply(temperature_datas, mode)
 view(TMJA)
+
+temperature_datas <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/temperature_villes_annees.xlsx")
+temperature_datas <- t(temperature_datas)
+temperature_datas <- as.data.frame(temperature_datas)
+colnames(temperature_datas) <- c('year', 'Lyon-Valence', 'Valence-Montélimar', 'Montélimar-Avignon')
+temperature_datas <- temperature_datas[-1,]
+rownames(temperature_datas) <- c(1:10)
+view(temperature_datas)
 
 ui <- dashboardPage(
   dashboardHeader(title = "Projet IA"),
@@ -37,14 +46,14 @@ ui <- dashboardPage(
   dashboardBody(
     fluidRow(
       box(
-        leafletOutput("map_rhone", height = 680),
-        height = 700
+        leafletOutput("map_rhone", height = 700),
+        height = 750
       ),
       box(
         selectInput(
-          inputId = 'city', 
-          choices = c('Lyon', 'Valence', 'Montélimar', 'Avignon'), 
-          label = 'Choisissez une ville',
+          inputId = 'troncon', 
+          choices = c('Lyon-Valence', 'Valence-Montélimar', 'Montélimar-Avignon'), 
+          label = "Choisissez un tronçon de l'A7",
           width = '50%'
         ),
         title = "Évolution du trafic routier sur l'A7",
@@ -76,28 +85,34 @@ server <- function(input, output, session) {
         fillOpacity = 0.5
       )
   })
-  
-  getCity <- reactive({
-    switch(input$city, "Lyon" = "T1", "Valence" = "T2", "Montélimar" = "T3", "Avignon" = "T3")
+
+  getTroncon <- reactive({
+    switch(input$troncon, "Lyon-Valence" = "T1", "Valence-Montélimar" = "T2", "Montélimar-Avignon" = "T3", "Tous" = "TMJA_T1, TMJA_T2, TMJA_T3")
   })
   
   output$trafic_table <- renderTable({
-    city <- getCity()
-    troncon <- gsub(" ", "", paste("TMJA_", city))
-    TMJA %>%
+    test_troncon <- input$troncon
+    chosen_troncon <- getTroncon()
+    troncon <- gsub(" ", "", paste("TMJA_", chosen_troncon))
+    first_table <- TMJA %>%
       select(year, troncon) %>%
-      rename("Trafic Moyen Journalier" = troncon, "Année" = year)
+      rename("Trafic Moyen Journalier" = troncon, "Années" = year)
+    second_table <- temperature_datas %>%
+      select(test_troncon) %>%
+      rename("Température" = test_troncon)
+    table_zer <- cbind(first_table, as.data.frame(second_table))
   },
   align = 'c'
   )
   
   output$trafic_plot <- renderPlot({
-    city <- getCity()
-    troncon <- gsub(" ", "", paste("TMJA_", city))
-    data_test <- TMJA %>%
+    test_troncon <- input$troncon
+    chosen_troncon <- getTroncon()
+    troncon <- gsub(" ", "", paste("TMJA_", chosen_troncon))
+    plot_zer <- TMJA %>%
       select(year, troncon) %>%
       rename("Trafic Moyen Journalier" = troncon, "Années" = year)
-    ggplot(data_test, aes(x = Année, y = `Trafic Moyen Journalier`, group = 1)) + geom_line() + ylim(50000, 100000)
+    ggplot(plot_zer, aes(x = Années, y = `Trafic Moyen Journalier`, group = 1), col="blue") + geom_line() + geom_col(aes(y = `Trafic Moyen Journalier`))# + scale_y_discrete(name = "température", sec_axis(~., "test"))
   })
 }
 
