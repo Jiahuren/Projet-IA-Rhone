@@ -35,9 +35,11 @@ view(TMJA)
 temperature_datas <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/temperature_villes_annees.xlsx")
 temperature_datas <- t(temperature_datas)
 temperature_datas <- as.data.frame(temperature_datas)
-colnames(temperature_datas) <- c('year', 'Lyon-Valence', 'Valence-Montélimar', 'Montélimar-Avignon')
 temperature_datas <- temperature_datas[-1,]
 rownames(temperature_datas) <- c(1:10)
+colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
+temperature_datas <- transform(temperature_datas, year = as.numeric(year))
+colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
 view(temperature_datas)
 
 ui <- dashboardPage(
@@ -91,28 +93,36 @@ server <- function(input, output, session) {
   })
   
   output$trafic_table <- renderTable({
-    test_troncon <- input$troncon
     chosen_troncon <- getTroncon()
+    
     troncon <- gsub(" ", "", paste("TMJA_", chosen_troncon))
+    ratio_pl <- gsub(" ", "", paste("RatioPL_", chosen_troncon))
+    nombre_pl <- gsub(" ", "", paste("Nb_PL_", chosen_troncon))
+    temperature <- gsub(" ", "", paste("Température_", chosen_troncon))
+    
     first_table <- TMJA %>%
-      select(year, troncon) %>%
-      rename("Trafic Moyen Journalier" = troncon, "Années" = year)
+      select(year, troncon, ratio_pl, nombre_pl) %>%
+      rename("Trafic Moyen Journalier" = troncon, "Années" = year, "Ratio PL" = ratio_pl, "Nombre PL" = nombre_pl)
     second_table <- temperature_datas %>%
-      select(test_troncon) %>%
-      rename("Température" = test_troncon)
+      select(temperature) %>%
+      rename("Température" = temperature)
     table_zer <- cbind(first_table, as.data.frame(second_table))
   },
   align = 'c'
   )
   
   output$trafic_plot <- renderPlot({
-    test_troncon <- input$troncon
     chosen_troncon <- getTroncon()
+    
     troncon <- gsub(" ", "", paste("TMJA_", chosen_troncon))
+    ratio_pl <- gsub(" ", "", paste("RatioPL_", chosen_troncon))
+    nombre_pl <- gsub(" ", "", paste("Nb_PL_", chosen_troncon))
+    temperature <- gsub(" ", "", paste("Température_", chosen_troncon))
+    
     plot_zer <- TMJA %>%
-      select(year, troncon) %>%
-      rename("Trafic Moyen Journalier" = troncon, "Années" = year)
-    ggplot(plot_zer, aes(x = Années, y = `Trafic Moyen Journalier`, group = 1), col="blue") + geom_line() + geom_col(aes(y = `Trafic Moyen Journalier`))# + scale_y_discrete(name = "température", sec_axis(~., "test"))
+      select(year, troncon, nombre_pl, ratio_pl) %>%
+      rename("Trafic Moyen Journalier" = troncon, "Années" = year, "Nombre PL" = nombre_pl)
+    ggplot(plot_zer, aes(x = Années)) + geom_line(aes(y = `Nombre PL`, group = 1)) + geom_col(aes(y = `Trafic Moyen Journalier`)) + scale_y_continuous("test", sec.axis = sec_axis(~./1000))
   })
 }
 
