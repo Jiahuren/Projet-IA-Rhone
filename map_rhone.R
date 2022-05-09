@@ -119,10 +119,13 @@ server <- function(input, output, session) {
     nombre_pl <- gsub(" ", "", paste("Nb_PL_", chosen_troncon))
     temperature <- gsub(" ", "", paste("Température_", chosen_troncon))
     
+    coeff <- 3000
     plot_zer <- TMJA %>%
       select(year, troncon, nombre_pl, ratio_pl) %>%
-      rename("Trafic Moyen Journalier" = troncon, "Années" = year, "Nombre PL" = nombre_pl)
-    ggplot(plot_zer, aes(x = Années)) + geom_line(aes(y = `Nombre PL`, group = 1)) + geom_col(aes(y = `Trafic Moyen Journalier`)) + scale_y_continuous("test", sec.axis = sec_axis(~./1000))
+      rename("Trafic Moyen Journalier" = troncon, "Année" = year, "Nombre PL" = nombre_pl, 'Ratio PL' = ratio_pl)
+    ggplot(plot_zer) +
+      geom_col(aes(x = `Année`, y = `Trafic Moyen Journalier`), fill = 'grey') + geom_col(aes(x = `Année`, y = `Nombre PL`), size = 1, fill = 'lightgreen') +
+      geom_line(aes(x = `Année`, y = `Ratio PL`*coeff), size = 1.5, color = 'red', group = 1) + geom_point(aes(x = `Année`, y = `Ratio PL`*coeff)) + scale_y_continuous(sec.axis = sec_axis(~./coeff, name = 'Nb PL')) 
   })
 }
 
