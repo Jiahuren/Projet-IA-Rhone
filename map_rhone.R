@@ -32,15 +32,25 @@ TMJA <- updateTMJA()
 sapply(temperature_datas, mode)
 view(TMJA)
 
-temperature_datas <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/temperature_villes_annees.xlsx")
-temperature_datas <- t(temperature_datas)
-temperature_datas <- as.data.frame(temperature_datas)
-temperature_datas <- temperature_datas[-1,]
-rownames(temperature_datas) <- c(1:10)
-colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
-temperature_datas <- transform(temperature_datas, year = as.numeric(year))
-colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
-view(temperature_datas)
+temperature_datas <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/temperature_troncons_annees.xlsx")
+#temperature_datas <- t(temperature_datas)
+#temperature_datas <- as.data.frame(temperature_datas)
+#temperature_datas <- temperature_datas[-1,]
+#rownames(temperature_datas) <- c(1:10)
+#colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
+#temperature_datas <- transform(temperature_datas, year = as.numeric(year))
+#colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
+#view(temperature_datas)
+
+air_quality_lyon <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', sheet = 'Lyon')
+air_quality_lyon <- transform(air_quality_lyon, year = as.character(year))
+air_quality_lyon <- transform(air_quality_lyon, PM2.5 = as.numeric(PM2.5))
+
+air_quality_valence <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', sheet = 'Valence')
+air_quality_valence <- transform(air_quality_valence, year = as.character(year))
+air_quality_avignon <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', sheet = 'Avignon')
+air_quality_avignon <- transform(air_quality_avignon, year = as.character(year))
+sapply(air_quality_lyon, mode)
 
 ui <- dashboardPage(
   dashboardHeader(title = "Projet IA"),
@@ -48,23 +58,27 @@ ui <- dashboardPage(
   dashboardBody(
     fluidRow(
       box(
-        leafletOutput("map_rhone", height = 700),
-        height = 750
+        leafletOutput("map_rhone", height = 670, width = "100%"),
+        height = 700,
+        width = "100%"
       ),
       box(
+        title = "Évolution du trafic routier sur l'A7",
         selectInput(
           inputId = 'troncon', 
           choices = c('Lyon-Valence', 'Valence-Montélimar', 'Montélimar-Avignon'), 
           label = "Choisissez un tronçon de l'A7",
           width = '50%'
         ),
-        title = "Évolution du trafic routier sur l'A7",
         plotOutput("trafic_plot"),
-        tableOutput('trafic_table'),
-        #infoBox(title = "Trafic moyen journalier annuel en 2010"),
-        #infoBoxOutput('trafic_2019_infobox'),
-        #infoBox(title = "evolution qualite de l'air")
-        #plotOutput('air_quality_plot', width = '100%')
+        tableOutput('trafic_table', width = "100%"),
+        height = 900
+      ),
+      box(
+        title = "Qualité de l'air de la zone",
+        plotOutput('air_quality_plot'),
+        tableOutput('air_quality_table'),
+        height = 900
       )
     )
   )
@@ -77,7 +91,6 @@ server <- function(input, output, session) {
       setView(zoom = 8, lat = 44.739776, lng = 4.787098) %>%
       addTiles(
           #urlTemplate = "https://tile.jawg.io/jawg-terrain/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"
-          #urlTemplate = "https://tile.jawg.io/9f1dddd5-2beb-486f-96e5-da456d6241c1/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"
           urlTemplate = "https://tile.jawg.io/3b1e49d6-9654-45cd-b9fe-05e6e8ade00d/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"  
         ) %>%
       addCircleMarkers(
@@ -98,15 +111,10 @@ server <- function(input, output, session) {
     troncon <- gsub(" ", "", paste("TMJA_", chosen_troncon))
     ratio_pl <- gsub(" ", "", paste("RatioPL_", chosen_troncon))
     nombre_pl <- gsub(" ", "", paste("Nb_PL_", chosen_troncon))
-    temperature <- gsub(" ", "", paste("Température_", chosen_troncon))
     
     first_table <- TMJA %>%
       select(year, troncon, ratio_pl, nombre_pl) %>%
       rename("Trafic Moyen Journalier" = troncon, "Années" = year, "Ratio PL" = ratio_pl, "Nombre PL" = nombre_pl)
-    second_table <- temperature_datas %>%
-      select(temperature) %>%
-      rename("Température" = temperature)
-    table_zer <- cbind(first_table, as.data.frame(second_table))
   },
   align = 'c'
   )
@@ -117,16 +125,46 @@ server <- function(input, output, session) {
     troncon <- gsub(" ", "", paste("TMJA_", chosen_troncon))
     ratio_pl <- gsub(" ", "", paste("RatioPL_", chosen_troncon))
     nombre_pl <- gsub(" ", "", paste("Nb_PL_", chosen_troncon))
-    temperature <- gsub(" ", "", paste("Température_", chosen_troncon))
-    
+
     coeff <- 3000
     plot_zer <- TMJA %>%
       select(year, troncon, nombre_pl, ratio_pl) %>%
-      rename("Trafic Moyen Journalier" = troncon, "Année" = year, "Nombre PL" = nombre_pl, 'Ratio PL' = ratio_pl)
+      rename("Trafic Moyen Journalier Annuel" = troncon, "Année" = year, "Nombre PL" = nombre_pl, 'Ratio PL' = ratio_pl)
     ggplot(plot_zer) +
-      geom_col(aes(x = `Année`, y = `Trafic Moyen Journalier`), fill = 'grey') + geom_col(aes(x = `Année`, y = `Nombre PL`), size = 1, fill = 'lightgreen') +
-      geom_line(aes(x = `Année`, y = `Ratio PL`*coeff), size = 1.5, color = 'red', group = 1) + geom_point(aes(x = `Année`, y = `Ratio PL`*coeff)) + scale_y_continuous(sec.axis = sec_axis(~./coeff, name = 'Nb PL')) 
+      geom_col(aes(x = `Année`, y = `Trafic Moyen Journalier Annuel`, fill = 'Trafic Moyen Journalier Annuel')) + 
+      geom_col(aes(x = `Année`, y = `Nombre PL`, fill = 'Nombre moyen de Poids Lourds')) +
+      geom_line(aes(x = `Année`, y = `Ratio PL`*coeff, colour = 'Ratio moyen de Poids Lourds'), size = 1.5, group = 1) + 
+      geom_point(aes(x = `Année`, y = `Ratio PL`*coeff)) + scale_y_continuous(sec.axis = sec_axis(~./coeff, name = 'Ratio moyen de Poids Lourds')) +
+      ggtitle("Ratio et nombre moyens de Poids Lourds par rapport au Trafic Moyen Journalier Annuel") + 
+      theme(legend.position = 'bottom', legend.direction = "vertical") + labs(color = '', fill = '')
+  })
+  
+  aq_city <- reactive({
+    switch(input$troncon, 'Lyon-Valence' = air_quality_lyon, 'Valence-Montélimar' = air_quality_valence, 'Montélimar-Avignon' = air_quality_avignon)
+  })
+  
+  output$air_quality_table <- renderTable({
+    aq_city_table <- aq_city()
+    
+    aq_city_table %>%
+      select(year, NO2, O3, PM10, PM2.5) %>%
+      rename('Année' = year, "Dioxyde d'Azote (NO2)" = NO2, "Ozone (O3)" = O3, "Particules Fines (< 10μm)" = PM10, "Particules Fines (< 2,5μm)" = PM2.5)
+  },
+  align = 'c'
+  )
+  
+  output$air_quality_plot <- renderPlot({
+    aq_city_plot <- aq_city()
+    
+    aq_city_plot %>%
+      drop_na(NO2, O3, PM10) %>%
+      ggplot() + geom_line(aes(x = year, y = NO2, group = 1, colour = 'NO2'), size = 1.5) + geom_point(aes(x = year, y = NO2), color = 'black', size = 1.5) +
+      geom_line(aes(x = year, y = O3, group = 1, colour = 'O3'),  size = 1.5) + geom_point(aes(x = year, y = O3), color = 'black', size = 1.5) +
+      geom_line(aes(x = year, y = PM10, group = 1, colour = 'PM10'), size = 1.5) + geom_point(aes(x = year, y = PM10), color = 'black', size = 1.5) +
+      scale_y_continuous('Polluants') + theme(legend.position = 'bottom', legend.direction = "vertical") + labs(color = '') +
+      geom_line(aes(x = year, y = PM2.5, group = 1, colour = 'PM2.5'), size = 1.5) + geom_point(aes(x = year, y = PM2.5), color = 'black', size = 1.5)
   })
 }
 
 shinyApp(ui, server)
+
