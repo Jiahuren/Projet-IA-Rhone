@@ -52,14 +52,47 @@ air_quality_avignon <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', 
 air_quality_avignon <- transform(air_quality_avignon, year = as.character(year))
 sapply(air_quality_lyon, mode)
 
+str(etat_stations_filtrees_rhone)
+etat_stations_filtrees_rhone <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/etat_stations_filtrees_rhone.xlsx")
+View(etat_stations_filtrees_rhone)
+data_eau <- etat_stations_filtrees_rhone %>%
+  select(numero_station, `lat-lon`, cours_d_eau, nature_MDO, type_MDO, annee, TEMP, OX, departement, POISSONS) %>%
+  filter( departement != "SAVOIE" & departement != "AIN")
+names(data_eau)[2] <- 'coordonnees'
+View(data_eau)
+
+data_eau <- separate(data_eau, coordonnees, into = c("lat", "lng"), sep = ",")
+data_eau$lat <- substring(data_eau$lat, 2)
+data_eau$lng <- gsub(")", "", data_eau$lng)
+
+data_eau$lat <- as.numeric(data_eau$lat)
+data_eau$lng <- as.numeric(data_eau$lng)
+
+eau <- data_eau %>%
+  mutate(popup_ingo = paste('<b>', 'num?ro de station :', '</b>', data_eau$numero_station, "<br/>",
+                            '<b>', "cours d'eau :", '</b>', data_eau$cours_d_eau, "<br/>",
+                            '<b>', 'nature mdo :', '</b>', data_eau$nature_MDO,"<br/>",
+                            '<b>', 'type mdo :', '</b>', data_eau$type_MDO, "<br/>",
+                            '<b>', 'temp :', '</b>', data_eau$TEMP, "<br/>",
+                            '<b>', 'OX :', '</b>', data_eau$OX,"<br/>",
+                            '<b>', 'poissons :', '</b>', data_eau$POISSONS,"<br/>",
+                            '<b>', 'd?partement :', '</b>', data_eau$departement, "<br/>")
+  )
+
+
 ui <- dashboardPage(
   dashboardHeader(title = "Projet IA"),
   dashboardSidebar(disable = TRUE),
   dashboardBody(
     fluidRow(
       box(
-        leafletOutput("map_rhone", height = 670, width = "100%"),
-        height = 700,
+        selectInput(inputId = "annee",
+                    label = "Ann?e",
+                    choices = c("2017", "2018", "2019", "2020"),
+                    selected = "2019",
+                    width = "33%"),
+        leafletOutput("map_rhone", height = 620, width = "100%"),
+        height = 750,
         width = "100%"
       ),
       box(
@@ -71,7 +104,7 @@ ui <- dashboardPage(
           width = '50%'
         ),
         plotOutput("trafic_plot"),
-        tableOutput('trafic_table', width = "100%"),
+        tableOutput('trafic_table'),
         height = 900
       ),
       box(
@@ -86,6 +119,14 @@ ui <- dashboardPage(
 
 server <- function(input, output, session) { 
   
+  filtre_eau <- reactive({
+    eau %>% 
+      filter( annee %in%  input$annee) 
+  })
+  
+  pal <- colorFactor(pal = c("#0099FF", "#33FF33", "#FFFF33", "#FF0000", "#FFFFFF"), domain = c("TBE", "BE", "MOY", "MAUV", "Ind"))
+  
+  
   output$map_rhone <- renderLeaflet({
     leaflet(cities_coords) %>%
       setView(zoom = 8, lat = 44.739776, lng = 4.787098) %>%
@@ -93,12 +134,17 @@ server <- function(input, output, session) {
           #urlTemplate = "https://tile.jawg.io/jawg-terrain/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"
           urlTemplate = "https://tile.jawg.io/3b1e49d6-9654-45cd-b9fe-05e6e8ade00d/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"  
         ) %>%
-      addCircleMarkers(
-        lat = cities_coords$lat,
-        lng = cities_coords$lng,
-        stroke = FALSE,
-        fillOpacity = 0.5
-      )
+      addCircleMarkers(data= filtre_eau(), 
+                       lat = ~lat,
+                       lng = ~lng,
+                       color = ~pal(TEMP),
+                       radius = 8,
+                       popup = ~popup_ingo,
+                       stroke = FALSE, fillOpacity = 0.8) %>%
+      addLegend(pal=pal, values=eau$TEMP,opacity=1, na.label = "NA")%>%
+      addEasyButton(easyButton(
+        icon="fa-crosshairs", title="ME",
+        onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
   })
 
   getTroncon <- reactive({
@@ -161,9 +207,12 @@ server <- function(input, output, session) {
       ggplot() + geom_line(aes(x = year, y = NO2, group = 1, colour = 'NO2'), size = 1.5) + geom_point(aes(x = year, y = NO2), color = 'black', size = 1.5) +
       geom_line(aes(x = year, y = O3, group = 1, colour = 'O3'),  size = 1.5) + geom_point(aes(x = year, y = O3), color = 'black', size = 1.5) +
       geom_line(aes(x = year, y = PM10, group = 1, colour = 'PM10'), size = 1.5) + geom_point(aes(x = year, y = PM10), color = 'black', size = 1.5) +
-      scale_y_continuous('Polluants') + theme(legend.position = 'bottom', legend.direction = "vertical") + labs(color = '') +
-      geom_line(aes(x = year, y = PM2.5, group = 1, colour = 'PM2.5'), size = 1.5) + geom_point(aes(x = year, y = PM2.5), color = 'black', size = 1.5)
+      scale_y_continuous('Polluants') +
+      geom_line(aes(x = year, y = PM2.5, group = 1, colour = 'PM2.5'), size = 1.5) + geom_point(aes(x = year, y = PM2.5), color = 'black', size = 1.5) +
+      theme(legend.position = 'bottom', legend.direction = "vertical") + labs(color = '') + xlab('Année')
   })
+  
+  
 }
 
 shinyApp(ui, server)
