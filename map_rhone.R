@@ -69,14 +69,14 @@ data_eau$lat <- as.numeric(data_eau$lat)
 data_eau$lng <- as.numeric(data_eau$lng)
 
 eau <- data_eau %>%
-  mutate(popup_ingo = paste('<b>', 'num?ro de station :', '</b>', data_eau$numero_station, "<br/>",
-                            '<b>', "cours d'eau :", '</b>', data_eau$cours_d_eau, "<br/>",
-                            '<b>', 'nature mdo :', '</b>', data_eau$nature_MDO,"<br/>",
-                            '<b>', 'type mdo :', '</b>', data_eau$type_MDO, "<br/>",
-                            '<b>', 'temp :', '</b>', data_eau$TEMP, "<br/>",
-                            '<b>', 'OX :', '</b>', data_eau$OX,"<br/>",
-                            '<b>', 'poissons :', '</b>', data_eau$POISSONS,"<br/>",
-                            '<b>', 'd?partement :', '</b>', data_eau$departement, "<br/>")
+  mutate(popup_info = paste('<b>', 'Identifiant de la station :', '</b>', data_eau$numero_station, "<br/>",
+                            '<b>', "Cours d'eau :", '</b>', data_eau$cours_d_eau, "<br/>",
+                            '<b>', 'Nature MDO :', '</b>', data_eau$nature_MDO,"<br/>",
+                            '<b>', 'Type MDO :', '</b>', data_eau$type_MDO, "<br/>",
+                            '<b>', 'Température :', '</b>', data_eau$TEMP, "<br/>",
+                            '<b>', 'Oxygène :', '</b>', data_eau$OX,"<br/>",
+                            '<b>', 'Poissons :', '</b>', data_eau$POISSONS,"<br/>",
+                            '<b>', 'Département :', '</b>', data_eau$departement, "<br/>")
   )
 
 
@@ -84,34 +84,66 @@ ui <- dashboardPage(
   dashboardHeader(title = "Projet IA"),
   dashboardSidebar(disable = TRUE),
   dashboardBody(
-    fluidRow(
-      box(
-        selectInput(inputId = "annee",
-                    label = "Ann?e",
-                    choices = c("2017", "2018", "2019", "2020"),
-                    selected = "2019",
-                    width = "33%"),
-        leafletOutput("map_rhone", height = 620, width = "100%"),
-        height = 750,
-        width = "100%"
-      ),
-      box(
-        title = "Évolution du trafic routier sur l'A7",
-        selectInput(
-          inputId = 'troncon', 
-          choices = c('Lyon-Valence', 'Valence-Montélimar', 'Montélimar-Avignon'), 
-          label = "Choisissez un tronçon de l'A7",
-          width = '50%'
+    fluidPage(
+      fluidRow(
+        align = 'center',
+        column(
+          width = 12,
+          box(
+            align = 'center',
+            selectInput(inputId = "annee",
+                        label = "Sélectionnez l'année souhaitée",
+                        choices = c("2017", "2018", "2019", "2020"),
+                        selected = "2019",
+                        width = "33%"),
+            width = "100%"
+          )
         ),
-        plotOutput("trafic_plot"),
-        tableOutput('trafic_table'),
-        height = 900
+        column(
+          width = 12,
+          box(
+            title = "Carte de la vallée du Rhône",
+            align = 'center',
+            leafletOutput("map_rhone", height = "65vh"),
+            height = "75vh",
+            width = "100%"
+          )
+        ),
       ),
-      box(
-        title = "Qualité de l'air de la zone",
-        plotOutput('air_quality_plot'),
-        tableOutput('air_quality_table'),
-        height = 900
+      fluidRow(
+        align = 'center',
+        column(
+          width = 12,
+          box(
+            selectInput(
+              inputId = 'troncon', 
+              choices = c('Lyon-Valence', 'Valence-Montélimar', 'Montélimar-Avignon'), 
+              label = "Choisissez un tronçon de l'A7 à visualiser",
+              width = '50%'
+            ),
+            width = "100%"
+          ),
+          column(
+            width = 6,
+            box(
+              title = "Données relatives au trafic de l'axe A7",
+              width = "100%",
+              plotOutput("trafic_plot"),
+              tableOutput('trafic_table'),
+              height = 900
+            )
+          ),
+          column(
+            width = 6,
+            box(
+              title = "Qualité de l'air de la zone",
+              width = "100%",
+              plotOutput('air_quality_plot'),
+              tableOutput('air_quality_table'),
+              height = 900
+            )
+          )
+        )
       )
     )
   )
@@ -124,24 +156,31 @@ server <- function(input, output, session) {
       filter( annee %in%  input$annee) 
   })
   
-  pal <- colorFactor(pal = c("#0099FF", "#33FF33", "#FFFF33", "#FF0000", "#FFFFFF"), domain = c("TBE", "BE", "MOY", "MAUV", "Ind"))
+  pal <- colorFactor(pal = c("#3CB371", "lightgrey", "#FFA500", "orange", "#808080", "#008000" ), domain = c("TBE", "BE", "MOY", "MAUV", "Ind", "NA"))
   
   
   output$map_rhone <- renderLeaflet({
     leaflet(cities_coords) %>%
-      setView(zoom = 8, lat = 44.739776, lng = 4.787098) %>%
+      setView(zoom = 8, lat = 44.900000, lng = 4.787098) %>%
       addTiles(
           #urlTemplate = "https://tile.jawg.io/jawg-terrain/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"
           urlTemplate = "https://tile.jawg.io/3b1e49d6-9654-45cd-b9fe-05e6e8ade00d/{z}/{x}/{y}.png?access-token=ZR6n0aKfW6aoU1Pa9hV58bYyeqYkudIHTH9rsWQzN99G012BkHnFTiZkZhPJLUl2"  
         ) %>%
+      addCircleMarkers( data= cities_coords,
+                        lat = cities_coords$lat,
+                        lng = cities_coords$lng,
+                        stroke = FALSE,
+                        fillOpacity = 0.8
+      ) %>%
       addCircleMarkers(data= filtre_eau(), 
                        lat = ~lat,
                        lng = ~lng,
                        color = ~pal(TEMP),
                        radius = 8,
-                       popup = ~popup_ingo,
-                       stroke = FALSE, fillOpacity = 0.8) %>%
-      addLegend(pal=pal, values=eau$TEMP,opacity=1, na.label = "NA")%>%
+                       popup = ~popup_info,
+                       stroke = FALSE, 
+                       fillOpacity = 1) %>%
+      addLegend(pal=pal, values=eau$TEMP, opacity=1, na.label = "NA")%>%
       addEasyButton(easyButton(
         icon="fa-crosshairs", title="ME",
         onClick=JS("function(btn, map){ map.locate({setView: true}); }")))
@@ -209,7 +248,8 @@ server <- function(input, output, session) {
       geom_line(aes(x = year, y = PM10, group = 1, colour = 'PM10'), size = 1.5) + geom_point(aes(x = year, y = PM10), color = 'black', size = 1.5) +
       scale_y_continuous('Polluants') +
       geom_line(aes(x = year, y = PM2.5, group = 1, colour = 'PM2.5'), size = 1.5) + geom_point(aes(x = year, y = PM2.5), color = 'black', size = 1.5) +
-      theme(legend.position = 'bottom', legend.direction = "vertical") + labs(color = '') + xlab('Année')
+      theme(legend.position = 'bottom', legend.direction = "vertical") + labs(color = '') + xlab('Année') +
+      ggtitle("Quantité de polluants en fonction des années dans la zone de la vallée du Rhône")
   })
   
   
