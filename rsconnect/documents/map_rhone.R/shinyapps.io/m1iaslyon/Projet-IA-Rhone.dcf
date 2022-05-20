@@ -1,0 +1,14 @@
+name: Projet-IA-Rhone
+title: Projet-IA-Rhone
+username:
+account: m1iaslyon
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 6335683
+bundleId: 5923848
+url: https://m1iaslyon.shinyapps.io/Projet-IA-Rhone/
+when: 1652981295.87936
+lastSyncTime: 1652981295.87938
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: ~$etat_stations_filtrees_rhone.xlsx|air_quality.xlsx|concentrations_moyennes_annuelles_paca.xlsx|Data Provence Alpes Cote d Azur/mes_sudpaca_journalier.csv|Data Provence Alpes Cote d Azur/polluants provence cote azur.xlsx|etat_stations_filtrees_rhone.xlsx|grille indice qualite de l'air.xlsx|Informations_sur_le_Rhne_et_le_parc_de_bteaux.pdf|lambert_to_gps.py|meteo.py|Navettes_autonomes_et_propres.pdf|pluviométrie|qualite_eau.csv|R region paca et rhone alpes.R|R shiny polluants.R|R traitement des données.R|temperature_troncons_annees.xlsx|temperature_villes_annees.csv|temperature_villes_annees.xlsx|TMJA_moyennes.xlsx|Base de données trafic routier|Data Auvergne Rhone Alpes|TMJA

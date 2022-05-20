@@ -14,32 +14,18 @@ cities_coords <- data.frame(cities_merges_coords, cities_lat, cities_lng)
 colnames(cities_coords) <- c('coordonnees', 'lat', 'lng')
 rownames(cities_coords) <- c('lyon-bron', 'valence', 'montelimar-ancone', 'avignon')
 
-updateTMJA <- function() {
-  TMJA <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/TMJA_moyennes.xlsx")
-  as.data.frame(TMJA)
-  colnames(TMJA) <- c('year', 'TMJA_T1', 'TMJA_T2', 'TMJA_T3', 'RatioPL_T1', 'RatioPL_T2', 'RatioPL_T3', 'Nb_PL_T1', 'Nb_PL_T2', 'Nb_PL_T3')
-  TMJA <- transform(TMJA, year = as.character(year))
-  TMJA['TMJA_T1'] <- round(TMJA['TMJA_T1'], 0)
-  TMJA['TMJA_T2'] <- round(TMJA['TMJA_T2'], 0)
-  TMJA['TMJA_T3'] <- round(TMJA['TMJA_T3'], 0)
-  TMJA['Nb_PL_T1'] <- round(TMJA['Nb_PL_T1'], 0)
-  TMJA['Nb_PL_T2'] <- round(TMJA['Nb_PL_T2'], 0)
-  TMJA['Nb_PL_T3'] <- round(TMJA['Nb_PL_T3'], 0)
-  return(TMJA)
-}
-
-TMJA <- updateTMJA()
-sapply(temperature_datas, mode)
-view(TMJA)
+TMJA <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/TMJA_moyennes.xlsx")
+as.data.frame(TMJA)
+colnames(TMJA) <- c('year', 'TMJA_T1', 'TMJA_T2', 'TMJA_T3', 'RatioPL_T1', 'RatioPL_T2', 'RatioPL_T3', 'Nb_PL_T1', 'Nb_PL_T2', 'Nb_PL_T3')
+TMJA <- transform(TMJA, year = as.character(year))
+TMJA['TMJA_T1'] <- round(TMJA['TMJA_T1'], 0)
+TMJA['TMJA_T2'] <- round(TMJA['TMJA_T2'], 0)
+TMJA['TMJA_T3'] <- round(TMJA['TMJA_T3'], 0)
+TMJA['Nb_PL_T1'] <- round(TMJA['Nb_PL_T1'], 0)
+TMJA['Nb_PL_T2'] <- round(TMJA['Nb_PL_T2'], 0)
+TMJA['Nb_PL_T3'] <- round(TMJA['Nb_PL_T3'], 0)
 
 temperature_datas <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/temperature_troncons_annees.xlsx")
-#temperature_datas <- t(temperature_datas)
-#temperature_datas <- as.data.frame(temperature_datas)
-#temperature_datas <- temperature_datas[-1,]
-#rownames(temperature_datas) <- c(1:10)
-#colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
-#temperature_datas <- transform(temperature_datas, year = as.numeric(year))
-#colnames(temperature_datas) <- c('year', 'Température_T1', 'Température_T2', 'Température_T3')
 #view(temperature_datas)
 
 air_quality_lyon <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', sheet = 'Lyon')
@@ -50,16 +36,16 @@ air_quality_valence <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', 
 air_quality_valence <- transform(air_quality_valence, year = as.character(year))
 air_quality_avignon <- read_excel('/Users/paulfaguet/Desktop/air_quality.xlsx', sheet = 'Avignon')
 air_quality_avignon <- transform(air_quality_avignon, year = as.character(year))
-sapply(air_quality_lyon, mode)
+#sapply(air_quality_lyon, mode)
 
 str(etat_stations_filtrees_rhone)
 etat_stations_filtrees_rhone <- read_excel("/Users/paulfaguet/Desktop/Projet-IA-Rhone/etat_stations_filtrees_rhone.xlsx")
-View(etat_stations_filtrees_rhone)
+#View(etat_stations_filtrees_rhone)
 data_eau <- etat_stations_filtrees_rhone %>%
   select(numero_station, `lat-lon`, cours_d_eau, nature_MDO, type_MDO, annee, TEMP, OX, departement, POISSONS) %>%
   filter( departement != "SAVOIE" & departement != "AIN")
 names(data_eau)[2] <- 'coordonnees'
-View(data_eau)
+#View(data_eau)
 
 data_eau <- separate(data_eau, coordonnees, into = c("lat", "lng"), sep = ",")
 data_eau$lat <- substring(data_eau$lat, 2)
